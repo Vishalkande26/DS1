@@ -1,0 +1,297 @@
+'''
+The Berkeley algorithm, also known as the Berkeley algorithm for clock synchronization, is a distributed algorithm used to synchronize the clocks of multiple computer systems in a network. It was developed at the University of California, Berkeley, hence the name.
+
+The main idea behind the Berkeley algorithm is to elect a master clock among the participating systems and then adjust the clocks of all other systems to match the time of the master clock. Here's a high-level overview of how the algorithm typically works:
+
+    Election of a Master Clock: Initially, one of the systems in the network is chosen as the master clock. This can be done through various methods, such as selecting the system with the most accurate clock or through a predefined mechanism.
+
+    Measurement of Clock Offsets: Each system in the network measures the difference between its own clock and the clock of the master system. This difference is known as the clock offset.
+
+    Calculation of Average Offset: Once each system has measured its clock offset, these offsets are collected and averaged across all systems. This average represents the discrepancy between the master clock and the other clocks in the network.
+
+    Adjustment of Clocks: Each system then adjusts its own clock based on the calculated average offset. This adjustment brings the clocks of all systems closer to synchronization with the master clock.
+
+    Iterative Process: The synchronization process may be repeated periodically to account for changes in clock drift or network conditions.
+
+The Berkeley algorithm is a relatively simple and effective method for achieving clock synchronization in distributed systems. However, it may not be suitable for all scenarios, particularly those with stringent accuracy requirements or highly dynamic network conditions. More advanced algorithms, such as the Network Time Protocol (NTP), are often used in practice for precise clock synchronization in large-scale networks.
+'''
+
+
+
+
+#Server-side code:
+
+
+
+# Python3 program imitating a clock server
+from dateutil import parser
+import threading
+import datetime
+import socket
+import time
+
+   
+   # This section imports necessary modules for the clock server, such as parser from dateutil, threading, datetime, socket, and time. 
+
+# datastructure used to store client address and clock data
+client_data = {}
+
+  
+  #  Initializes an empty dictionary client_data to store client address and clock data.
+
+
+
+''' nested thread function used to receive
+	clock time from a connected client '''
+def startReceivingClockTime(connector, address):
+
+ #   Defines a function startReceivingClockTime that receives clock time from a connected client. This function runs as a separate thread.
+
+
+
+	while True:
+		# receive clock time
+		clock_time_string = connector.recv(1024).decode()
+		clock_time = parser.parse(clock_time_string)
+		clock_time_diff = datetime.datetime.now() - \ clock_time
+
+		client_data[address] = {
+					"clock_time"	 : clock_time,
+					"time_difference" : clock_time_diff,
+					"connector"	 : connector
+					}
+
+		print("Client Data updated with: "+ str(address),
+											end = "\n\n")
+		time.sleep(5)
+
+   '''Inside startReceivingClockTime, it continuously receives clock time from the client, parses it into a datetime object, calculates the time difference between the received time and the current time, updates client_data dictionary with client's address, clock time, time difference, and connection object, and prints the update.'''
+
+
+
+''' master thread function used to open portal for
+	accepting clients over given port '''
+def startConnecting(master_server):
+
+  #  Defines a function startConnecting that opens a portal for accepting clients over a given port. This function runs as a separate thread.
+
+
+
+	while True:
+		# accepting a client / slave clock client
+		master_slave_connector, addr = master_server.accept()
+		slave_address = str(addr[0]) + ":" + str(addr[1])
+
+		print(slave_address + " got connected successfully")
+
+		current_thread = threading.Thread(
+						target = startReceivingClockTime,
+						args = (master_slave_connector,
+										slave_address, ))
+		current_thread.start()
+
+  '''  Inside startConnecting, it continuously accepts client connections, prints the connected client's address, and starts a new thread for receiving clock time from the connected client.'''
+
+
+
+# subroutine function used to fetch average clock difference
+def getAverageClockDiff():
+
+    #Defines a function getAverageClockDiff to calculate the average clock difference among all connected clients.
+
+
+
+	time_difference_list = list(client['time_difference']
+								for client_addr, client
+									in client_data.items())
+									
+
+	sum_of_clock_difference = sum(time_difference_list, \
+								datetime.timedelta(0, 0))
+
+	average_clock_difference = sum_of_clock_difference \
+										/ len(client_data)
+
+	return average_clock_difference
+
+   ''' Inside getAverageClockDiff, it calculates the average clock difference by summing up all time differences and dividing by the number of connected clients.'''
+
+
+
+''' master sync thread function used to generate
+	cycles of clock synchronization in the network '''
+def synchronizeAllClocks():
+
+   # Defines a function synchronizeAllClocks to synchronize all clocks in the network. This function runs as a separate thread.
+
+
+
+	while True:
+
+		print("New synchronization cycle started.")
+		print("Number of clients to be synchronized: " + \
+									str(len(client_data)))
+
+   # Inside synchronizeAllClocks, it starts a new synchronization cycle, prints the number of connected clients.
+
+
+
+		if len(client_data) > 0:
+
+			average_clock_difference = getAverageClockDiff()
+
+			for client_addr, client in client_data.items():
+				try:
+					synchronized_time = \
+						datetime.datetime.now() + \
+									average_clock_difference
+
+					client['connector'].send(str(
+							synchronized_time).encode())
+
+				except Exception as e:
+					print("Something went wrong while " + \
+						"sending synchronized time " + \
+						"through " + str(client_addr))
+
+		else :
+			print("No client data." + \
+						" Synchronization not applicable.")
+
+		print("\n\n")
+
+		time.sleep(5)
+
+    '''Inside synchronizeAllClocks, it calculates the average clock difference, synchronizes each client's clock with the synchronized time, and sends it to the client. It sleeps for 5 seconds before starting a new synchronization cycle.'''
+
+
+
+# function used to initiate the Clock Server / Master Node
+def initiateClockServer(port = 8080):
+
+    #Defines a function initiateClockServer to initiate the Clock Server on a specified port.
+
+
+
+	master_server = socket.socket()
+	master_server.setsockopt(socket.SOL_SOCKET,
+								socket.SO_REUSEADDR, 1)
+
+	print("Socket at master node created successfully\n")
+	
+	master_server.bind(('', port))
+
+	# Start listening to requests
+	master_server.listen(10)
+	print("Clock server started...\n")
+
+	# start making connections
+	print("Starting to make connections...\n")
+	master_thread = threading.Thread(
+						target = startConnecting,
+						args = (master_server, ))
+	master_thread.start()
+
+	# start synchronization
+	print("Starting synchronization parallelly...\n")
+	sync_thread = threading.Thread(
+						target = synchronizeAllClocks,
+						args = ())
+	sync_thread.start()
+
+   # Inside initiateClockServer, it creates a socket for the master server, binds it to the specified port, starts listening for client connections, starts a thread for accepting connections, and starts another thread for synchronization.
+
+
+
+# Driver function
+if __name__ == '__main__':
+	# Trigger the Clock Server
+	initiateClockServer(port = 8080)
+
+   # Checks if the script is executed as the main program, then triggers the Clock Server.
+   
+   
+
+#Client-side code:
+
+python
+
+# Python3 program imitating a client process
+from timeit import default_timer as timer
+from dateutil import parser
+import threading
+import datetime
+import socket
+import time
+
+ '''   This section imports necessary modules for the client process, such as default_timer from timeit, parser from dateutil, threading, datetime, socket, and time.'''
+
+
+
+# client thread function used to send time at client side
+def startSendingTime(slave_client):
+
+    #Defines a function startSendingTime that sends time at the client side. This function runs as a separate thread.
+
+
+
+	while True:
+		# provide server with clock time at the client
+		slave_client.send(str(
+					datetime.datetime.now()).encode())
+
+		print("Recent time sent successfully",
+										end = "\n\n")
+		time.sleep(5)
+
+  #  Inside startSendingTime, it continuously sends the current time to the server, prints a success message, and sleeps for 5 seconds.
+
+
+
+# client thread function used to receive synchronized time
+
+#WHY THIS \ TAKEN IN THAT CODE
+
+
+'''The backslash (\) in Python is used as a line continuation character. It allows you to split a long line of code into multiple lines for better readability without Python interpreting it as the end of the statement. In the provided code snippets, backslashes are used to continue the code on the next line. Let's examine where they are used:
+
+    In the server-side code:
+
+python
+
+	clock_time_diff = datetime.datetime.now() - \ clock_time
+
+Here, the backslash is used to continue the code to the next line, allowing the line to be split for better readability. It indicates that the statement continues on the next line.
+
+    Similarly, in the client-side code:
+
+python
+
+	sum_of_clock_difference = sum(time_difference_list, \
+								datetime.timedelta(0, 0))
+
+Here, the backslash is used to continue the code to the next line. It helps in formatting the code in a readable manner.
+
+In both cases, the backslashes are used solely for code formatting purposes and have no impact on the functionality of the code. They simply indicate that the statement continues on the next line.
+while True:
+		# receive data from the server
+		Synchronized_time = parser.parse(
+						slave_client.recv(1024).decode())
+
+		print("Synchronized time at the client is: " + \
+									str(Synchronized_time),
+									end = "\n\n") '''
+
+
+
+'''what is meaning of 1024?
+
+
+In this context, 1024 refers to the maximum amount of data (in bytes) that can be received from the server in a single recv() call.
+
+The recv() method is used to receive data from a socket. It takes one argument, which specifies the maximum amount of data to receive at once. When you specify 1024, it means that the socket will attempt to receive up to 1024 bytes of data from the server in one go.
+
+However, it's important to note that you may not always receive exactly 1024 bytes of data. The actual amount of data received can be less than 1024 bytes, depending on how much data the server has sent at that moment. If there's more data to be received, you would need to call recv() again to receive the remaining data.
+
+So, in summary, 1024 is the buffer size used for receiving data from the server. It's a commonly used value for socket programming, but it can be adjusted based on the specific requirements of your application.'''
+

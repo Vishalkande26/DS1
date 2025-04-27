@@ -1,0 +1,124 @@
+java
+
+import mpi.MPI;
+import java.util.Scanner;
+import mpi.*;
+
+    These lines import necessary packages for the MPI (Message Passing Interface) library, which is used for parallel processing and communication.
+
+java
+
+public class ArrSum {
+
+    This line defines the start of the Java class named ArrSum.
+
+java
+
+public static void main(String[] args) throws Exception{
+    MPI.Init(args);
+
+    This line defines the main method of the program, which is the entry point for execution. It initializes MPI, which sets up communication for parallel processes.
+
+java
+
+int rank = MPI.COMM_WORLD.Rank();
+int size = MPI.COMM_WORLD.Size();
+
+    These lines determine the rank and size of the current process within the MPI communicator. rank represents the identifier of the current process, and size represents the total number of processes.
+
+java
+
+int unitsize = 5;
+int root = 0;
+int send_buffer[] = null;
+
+    These lines initialize variables for the size of data units to be sent, the root process (process 0), and the send buffer array, which will hold data to be sent to other processes.
+
+java
+
+send_buffer = new int [unitsize * size];
+int recieve_buffer[] = new int [unitsize];
+int new_recieve_buffer[] = new int [size];
+
+    These lines initialize the send buffer, receive buffer, and new receive buffer arrays. send_buffer is allocated memory to hold data for all processes, receive_buffer is allocated memory to hold received data for each process, and new_receive_buffer is allocated memory to hold aggregated results from all processes.
+
+java
+
+if(rank == root) {
+    int total_elements = unitsize * size;
+    System.out.println("Enter " + total_elements + " elements");
+    for(int i = 0; i < total_elements; i++) {
+        System.out.println("Element " + i + "\t = " + i);
+        send_buffer[i] = i;
+    }
+}
+
+    This block of code executes only for the root process. It prompts the user to input elements for the array and populates the send_buffer array with those elements.
+
+java
+
+MPI.COMM_WORLD.Scatter(
+    send_buffer,
+    0,
+    unitsize,
+    MPI.INT,
+    recieve_buffer,
+    0,
+    unitsize,
+    MPI.INT,
+    root
+);
+
+    This line scatters the data from the send_buffer array to all processes in the communicator. Each process receives unitsize number of elements into its receive_buffer.
+
+java
+
+for(int i = 1; i < unitsize; i++) {
+    recieve_buffer[0] += recieve_buffer[i];
+}
+
+    This loop calculates the partial sum of the received elements in each process. The result is stored in the first index of the receive_buffer.
+
+java
+
+System.out.println(
+    "Intermediate sum at process " + rank + " is " + recieve_buffer[0]
+);
+
+    This line prints out the intermediate sum calculated by each process.
+
+java
+
+MPI.COMM_WORLD.Gather(
+    recieve_buffer,
+    0,
+    1,
+    MPI.INT,
+    new_recieve_buffer,
+    0,
+    1,
+    MPI.INT,
+    root
+);
+
+    This line gathers the partial sums calculated by each process to the root process (rank == root). The partial sums are stored in the new_recieve_buffer array.
+
+java
+
+if(rank == root) {
+    int total_sum = 0;
+    for(int i = 0; i < size; i++) {
+        total_sum += new_recieve_buffer[i];
+    }
+    System.out.println("Final sum : " + total_sum);
+}
+
+    This block of code executes only for the root process. It aggregates the partial sums from all processes stored in new_receive_buffer and prints out the final sum.
+
+java
+
+MPI.Finalize();
+
+    This line finalizes MPI, cleaning up resources and ending parallel execution.
+
+That's the explanation of the provided Java program. It utilizes MPI for parallel processing to find the sum of elements in an array distributed among multiple processes.

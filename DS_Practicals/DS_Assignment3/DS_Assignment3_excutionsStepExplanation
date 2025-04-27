@@ -1,0 +1,64 @@
+Step 1:
+
+
+export MPJ_HOME=/home/itsl1-03/Downloads/mpj-v0_44
+
+
+
+The purpose of the line `export MPJ_HOME=/home/itsl1-03/Downloads/mpj-v0_44` is to set the environment variable `MPJ_HOME` to the directory where MPJ (Message Passing Interface for Java) is installed on your system.
+
+Let's break down the line:
+
+- `export`: This command is used in Unix-like operating systems (such as Linux and macOS) to export variables to the environment. When you export a variable, it becomes available to all child processes launched from the current shell.
+
+- `MPJ_HOME`: This is the name of the environment variable being set. It is a common convention to use `MPJ_HOME` to represent the directory where MPJ is installed, but you could technically use any valid variable name.
+
+- `/home/itsl1-03/Downloads/mpj-v0_44`: This is the path to the directory where MPJ is installed on your system. By setting `MPJ_HOME` to this path, you are telling your system where to find the MPJ installation.
+
+The purpose of setting `MPJ_HOME` is to provide a convenient way for other programs and scripts to locate the MPJ installation directory. This is particularly important for running MPI-based Java programs using MPJ, as these programs may need to access libraries and executables provided by MPJ. By setting `MPJ_HOME`, you make it easier to reference these resources in your scripts and commands.
+
+
+
+Step 2:
+
+export PATH=$MPJ_HOME/bin:$PATH
+
+The purpose of the command `export PATH=$MPJ_HOME/bin:$PATH` is to update the `PATH` environment variable to include the `bin` directory inside the MPJ installation directory (`$MPJ_HOME/bin`). This modification to the `PATH` variable ensures that when you execute commands, the system knows where to find the MPJ executables without specifying the full path each time.
+
+Here's what each part of the command does:
+
+- `export`: This command is used in Unix-like operating systems (such as Linux and macOS) to export variables to the environment. In this case, it exports the updated `PATH` variable so that it's available to all child processes launched from the current shell.
+
+- `PATH=$MPJ_HOME/bin:$PATH`: This part of the command sets the `PATH` variable to include the `bin` directory inside the MPJ installation directory (`$MPJ_HOME/bin`). The colon `:` separates different directories in the `PATH`. By placing `$MPJ_HOME/bin` before `$PATH`, it ensures that the `bin` directory in the MPJ installation directory takes precedence when searching for executables. This way, when you type a command like `mpjrun`, the system will first look for it in the `bin` directory of the MPJ installation before searching other directories in the `PATH`.
+
+So, the purpose of running this line is to make the MPJ executables (such as `mpjrun`) accessible from any directory in the command line, simplifying the execution of MPI-based Java programs using MPJ.
+
+Step 3:
+javac -cp $MPJ_HOME/lib/mpj.jar ArrSum.java
+
+The purpose of the command `javac -cp $MPJ_HOME/lib/mpj.jar ArrSum.java` is to compile the Java source file `ArrSum.java` while specifying the classpath (`-cp`) to include the MPJ library `mpj.jar`.
+
+Let's break down the command:
+
+- `javac`: This is the Java compiler command used to compile Java source files into bytecode.
+
+- `-cp $MPJ_HOME/lib/mpj.jar`: This option (`-cp`) specifies the classpath for the compilation. The classpath tells the compiler where to find classes and libraries referenced in the source code. In this case, `$MPJ_HOME/lib/mpj.jar` is included in the classpath. This means that during compilation, the compiler will look for classes and resources in the `mpj.jar` file located in the `lib` directory of the MPJ installation directory (`$MPJ_HOME`).
+
+- `ArrSum.java`: This is the Java source file that you want to compile. It's the filename of the Java source file containing the code you wish to compile.
+
+By using this command, you ensure that the compiler can find and use the classes provided by the MPJ library (`mpj.jar`) when compiling your `ArrSum.java` file. This is necessary because your Java code (`ArrSum.java`) imports classes from the MPJ library, such as `mpi.MPI`. Without specifying the classpath to include `mpj.jar`, the compiler would not be able to resolve these imports and would throw compilation errors.
+
+Step 4:
+$MPJ_HOME/bin/mpjrun.sh -np 4 ArrSum
+
+The command `$MPJ_HOME/bin/mpjrun.sh -np 4 ArrSum` serves the purpose of executing an MPI (Message Passing Interface) Java program called `ArrSum` with a specified number of processes (`-np 4`). Let's break down this command:
+
+- `$MPJ_HOME/bin/mpjrun.sh`: This part of the command executes the `mpjrun.sh` script located in the `bin` directory of the MPJ installation (`$MPJ_HOME`). `mpjrun.sh` is a script used to launch MPI Java programs. By running this script, you initiate the execution of an MPI program.
+
+- `-np 4`: This option specifies the number of processes to be created for the MPI program. In this case, `-np 4` indicates that you want to run the `ArrSum` program with 4 MPI processes. Each MPI process will execute the same Java program concurrently.
+
+- `ArrSum`: This is the name of the Java class that contains your MPI Java program. When you execute `mpjrun.sh`, you provide the name of the Java class to be executed. In this case, `ArrSum` is the main class of your MPI Java program.
+
+By running this command, you start the `ArrSum` program with 4 MPI processes, allowing the MPI framework to distribute the workload among these processes as specified in your Java code. The MPI processes will execute concurrently, performing the computation defined in your program.
+
+
